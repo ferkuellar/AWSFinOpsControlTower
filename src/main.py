@@ -4,6 +4,7 @@ from rich.progress import track
 
 from ui import print_banner
 from regions import get_enabled_regions
+from costs import get_monthly_cost_by_service
 from inventory import scan_ec2_instances, scan_ebs_volumes
 from recommendations import analyze_ec2, analyze_ebs
 
@@ -18,6 +19,9 @@ def scan(
     all_regions: bool = False,
 ):
     print_banner("AWS FINOPS CONTROL TOWER")
+
+    console.rule("[bold cyan]Cost Overview")
+    cost_summary = get_monthly_cost_by_service(profile)
 
     regions = get_enabled_regions(profile) if all_regions else [region]
 
@@ -39,6 +43,8 @@ def scan(
     analyzed_volumes = analyze_ebs(all_volumes)
 
     console.rule("[bold green]Scan Summary")
+    console.print(f"[green]Cost period:[/green] {cost_summary['start']} to {cost_summary['end']}")
+    console.print(f"[green]Total monthly spend detected:[/green] ${cost_summary['total']:,.2f}")
     console.print(f"[green]EC2 instances found:[/green] {len(analyzed_instances)}")
     console.print(f"[green]EBS volumes found:[/green] {len(analyzed_volumes)}")
 
