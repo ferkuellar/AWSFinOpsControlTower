@@ -15,6 +15,12 @@ from networking import (
     scan_nat_gateways,
     scan_load_balancers,
 )
+from reporting import (
+    export_json,
+    export_csv_ec2,
+    export_csv_ebs,
+)
+from consolidated_report import generate_consolidated_markdown
 
 app = typer.Typer()
 console = Console()
@@ -25,6 +31,7 @@ def scan(
     profile: str = "default",
     region: str = "us-east-1",
     all_regions: bool = False,
+    export: bool = True,
 ):
     print_banner("AWS FINOPS CONTROL TOWER")
 
@@ -59,6 +66,40 @@ def scan(
 
     analyzed_instances = analyze_ec2(all_instances)
     analyzed_volumes = analyze_ebs(all_volumes)
+
+    report = {
+        "profile": profile,
+        "regions": regions,
+        "cost_summary": cost_summary,
+        "ec2_instances": analyzed_instances,
+        "ebs_volumes": analyzed_volumes,
+        "rds_instances": all_rds,
+        "s3_buckets": s3_buckets,
+        "lambda_functions": all_lambdas,
+        "elastic_ips": all_eips,
+        "nat_gateways": all_nat,
+        "load_balancers": all_load_balancers,
+    }
+
+    console.rule("[bold green]Consolidated Report")
+    consolidated_file = generate_consolidated_markdown(
+        report=report,
+        total_savings=0.0
+    )
+
+    console.print(
+        f"[green]Executive Markdown Report:[/green] {consolidated_file}"
+    )
+
+    if export:
+        json_file = export_json(report)
+        ec2_csv = export_csv_ec2(analyzed_instances)
+        ebs_csv = export_csv_ebs(analyzed_volumes)
+
+        console.rule("[bold green]Reports Exported")
+        console.print(f"[green]JSON:[/green] {json_file}")
+        console.print(f"[green]EC2 CSV:[/green] {ec2_csv}")
+        console.print(f"[green]EBS CSV:[/green] {ebs_csv}")
 
     console.rule("[bold green]Scan Summary")
     console.print(f"[green]Cost period:[/green] {cost_summary['start']} to {cost_summary['end']}")
