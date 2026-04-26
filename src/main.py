@@ -21,6 +21,8 @@ from reporting import (
     export_csv_ebs,
 )
 from consolidated_report import generate_consolidated_markdown
+from executive_summary import print_executive_summary
+from savings import estimate_savings
 
 app = typer.Typer()
 console = Console()
@@ -81,10 +83,16 @@ def scan(
         "load_balancers": all_load_balancers,
     }
 
+    console.rule("[bold green]Executive Summary")
+    print_executive_summary(report)
+
+    console.rule("[bold green]Savings Estimation")
+    total_savings = estimate_savings(report)
+
     console.rule("[bold green]Consolidated Report")
     consolidated_file = generate_consolidated_markdown(
         report=report,
-        total_savings=0.0
+        total_savings=total_savings
     )
 
     console.print(
@@ -104,6 +112,7 @@ def scan(
     console.rule("[bold green]Scan Summary")
     console.print(f"[green]Cost period:[/green] {cost_summary['start']} to {cost_summary['end']}")
     console.print(f"[green]Total monthly spend detected:[/green] ${cost_summary['total']:,.2f}")
+    console.print(f"[green]Estimated savings / exposure:[/green] ${total_savings:,.2f}")
     console.print(f"[green]EC2 instances found:[/green] {len(analyzed_instances)}")
     console.print(f"[green]EBS volumes found:[/green] {len(analyzed_volumes)}")
     console.print(f"[green]RDS instances found:[/green] {len(all_rds)}")
