@@ -7,6 +7,14 @@ from regions import get_enabled_regions
 from costs import get_monthly_cost_by_service
 from inventory import scan_ec2_instances, scan_ebs_volumes
 from recommendations import analyze_ec2, analyze_ebs
+from rds import scan_rds_instances
+from s3_scan import scan_s3_buckets
+from lambda_scan import scan_lambda_functions
+from networking import (
+    scan_elastic_ips,
+    scan_nat_gateways,
+    scan_load_balancers,
+)
 
 app = typer.Typer()
 console = Console()
@@ -27,15 +35,25 @@ def scan(
 
     all_instances = []
     all_volumes = []
+    all_rds = []
+    all_lambdas = []
+    all_eips = []
+    all_nat = []
+    all_load_balancers = []
+
+    console.rule("[bold cyan]Global Services")
+    s3_buckets = scan_s3_buckets(profile)
 
     for current_region in track(regions, description="Scanning AWS regions..."):
         console.rule(f"[bold cyan]Region: {current_region}")
 
-        instances = scan_ec2_instances(profile, current_region)
-        volumes = scan_ebs_volumes(profile, current_region)
-
-        all_instances.extend(instances)
-        all_volumes.extend(volumes)
+        all_instances.extend(scan_ec2_instances(profile, current_region))
+        all_volumes.extend(scan_ebs_volumes(profile, current_region))
+        all_rds.extend(scan_rds_instances(profile, current_region))
+        all_lambdas.extend(scan_lambda_functions(profile, current_region))
+        all_eips.extend(scan_elastic_ips(profile, current_region))
+        all_nat.extend(scan_nat_gateways(profile, current_region))
+        all_load_balancers.extend(scan_load_balancers(profile, current_region))
 
     console.rule("[bold cyan]Recommendations")
 
@@ -47,6 +65,12 @@ def scan(
     console.print(f"[green]Total monthly spend detected:[/green] ${cost_summary['total']:,.2f}")
     console.print(f"[green]EC2 instances found:[/green] {len(analyzed_instances)}")
     console.print(f"[green]EBS volumes found:[/green] {len(analyzed_volumes)}")
+    console.print(f"[green]RDS instances found:[/green] {len(all_rds)}")
+    console.print(f"[green]S3 buckets found:[/green] {len(s3_buckets)}")
+    console.print(f"[green]Lambda functions found:[/green] {len(all_lambdas)}")
+    console.print(f"[green]Elastic IPs found:[/green] {len(all_eips)}")
+    console.print(f"[green]NAT Gateways found:[/green] {len(all_nat)}")
+    console.print(f"[green]Load Balancers found:[/green] {len(all_load_balancers)}")
 
 
 if __name__ == "__main__":
