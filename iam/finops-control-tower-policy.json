@@ -1,0 +1,42 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FinOpsReadOnlyDiscovery",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "rds:Describe*",
+        "rds:ListTagsForResource",
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLifecycleConfiguration",
+        "lambda:ListFunctions",
+        "elasticloadbalancing:Describe*",
+        "cloudwatch:GetMetricStatistics",
+        "ce:GetCostAndUsage",
+        "pricing:GetProducts"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "FinOpsReportArchival",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::finops-control-tower-reports-ferkuellar",
+        "arn:aws:s3:::finops-control-tower-reports-ferkuellar/*"
+      ]
+    },
+    {
+      "Sid": "FinOpsSnsAlerts",
+      "Effect": "Allow",
+      "Action": [
+        "sns:Publish"
+      ],
+      "Resource": "arn:aws:sns:us-east-1:123456789012:finops-control-tower-alerts"
+    }
+  ]
+}

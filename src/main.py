@@ -23,6 +23,11 @@ from reporting import (
 from consolidated_report import generate_consolidated_markdown
 from executive_summary import print_executive_summary
 from savings import estimate_savings
+from s3_uploader import upload_reports_to_s3
+from notifications import (
+    publish_sns_alert,
+    build_finops_alert_message,
+)
 
 app = typer.Typer()
 console = Console()
@@ -34,6 +39,10 @@ def scan(
     region: str = "us-east-1",
     all_regions: bool = False,
     export: bool = True,
+    upload_s3: bool = False,
+    report_bucket: str = "",
+    sns_topic_arn: str = "",
+    alert_threshold: float = 500.0,
 ):
     print_banner("AWS FINOPS CONTROL TOWER")
 
@@ -109,6 +118,45 @@ def scan(
         console.print(f"[green]EC2 CSV:[/green] {ec2_csv}")
         console.print(f"[green]EBS CSV:[/green] {ebs_csv}")
 
+    uploaded_files = []
+
+    if upload_s3:
+        console.rule("[bold green]S3 Report Archival")
+
+        if not report_bucket:
+            console.print("[red]S3 upload requested but --report-bucket was not provided.[/red]")
+        else:
+            uploaded_files = upload_reports_to_s3(
+                profile=profile,
+                region=region,
+                bucket_name=report_bucket,
+                local_reports_dir="reports",
+                prefix="finops-control-tower",
+            )
+
+    if sns_topic_arn and total_savings >= alert_threshold:
+        console.rule("[bold red]SNS Alert")
+
+        message = build_finops_alert_message(
+            report=report,
+            total_savings=total_savings,
+            consolidated_file=str(consolidated_file),
+        )
+
+        publish_sns_alert(
+            profile=profile,
+            region=region,
+            topic_arn=sns_topic_arn,
+            subject=f"FinOps Alert: ${total_savings:,.2f} estimated exposure",
+            message=message,
+        )
+
+    elif sns_topic_arn:
+        console.rule("[bold yellow]SNS Alert Skipped")
+        console.print(
+            f"[yellow]Estimated savings ${total_savings:,.2f} is below threshold ${alert_threshold:,.2f}.[/yellow]"
+        )
+
     console.rule("[bold green]Scan Summary")
     console.print(f"[green]Cost period:[/green] {cost_summary['start']} to {cost_summary['end']}")
     console.print(f"[green]Total monthly spend detected:[/green] ${cost_summary['total']:,.2f}")
@@ -121,6 +169,7 @@ def scan(
     console.print(f"[green]Elastic IPs found:[/green] {len(all_eips)}")
     console.print(f"[green]NAT Gateways found:[/green] {len(all_nat)}")
     console.print(f"[green]Load Balancers found:[/green] {len(all_load_balancers)}")
+    console.print(f"[green]Uploaded files:[/green] {len(uploaded_files)}")
 
 
 if __name__ == "__main__":
