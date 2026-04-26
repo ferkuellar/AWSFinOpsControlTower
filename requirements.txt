@@ -3,3 +3,4 @@ botocore
 rich
 typer
 python-dotenv
+reportlab

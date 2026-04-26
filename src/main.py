@@ -29,6 +29,8 @@ from notifications import (
     build_finops_alert_message,
 )
 
+from pdf_report import generate_cfo_pdf_report
+
 app = typer.Typer()
 console = Console()
 
@@ -107,6 +109,15 @@ def scan(
     console.print(
         f"[green]Executive Markdown Report:[/green] {consolidated_file}"
     )
+
+    console.rule("[bold green]CFO PDF Report")
+    pdf_file = generate_cfo_pdf_report(
+        report=report,
+        total_savings=total_savings
+    )
+
+    console.print(f"[green]CFO PDF Report:[/green] {pdf_file}")
+
 
     if export:
         json_file = export_json(report)
