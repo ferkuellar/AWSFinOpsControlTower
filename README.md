@@ -1,3 +1,4 @@
+
 # AWS FinOps Control Tower
 
 ### Terraform-Provisioned FinOps Operating Model for AWS Cost Visibility, Governance, and Financial Decision Support
@@ -43,7 +44,7 @@ The real problem is the absence of a repeatable operating model that connects:
 
 ```text
 Inventory + Utilization + Cost + Ownership + Decision
-```
+````
 
 ---
 
@@ -136,15 +137,15 @@ AWSFinOpsControlTower/
 
 ## 6. Terraform-Provisioned AWS Components
 
-| Component | Purpose |
-|---|---|
-| S3 Bucket | Stores FinOps reports and audit evidence |
-| SNS Topic | Sends executive and operational alerts |
-| IAM Role | Provides controlled permissions for Lambda execution |
-| Lambda Function | Runs the FinOps discovery and cost impact engine |
-| EventBridge Rule | Executes the scanner on a schedule |
-| CloudWatch Logs | Captures execution logs and troubleshooting data |
-| Default Tags | Enforces ownership, environment, project, and cost center metadata |
+| Component        | Purpose                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| S3 Bucket        | Stores FinOps reports and audit evidence                           |
+| SNS Topic        | Sends executive and operational alerts                             |
+| IAM Role         | Provides controlled permissions for Lambda execution               |
+| Lambda Function  | Runs the FinOps discovery and cost impact engine                   |
+| EventBridge Rule | Executes the scanner on a schedule                                 |
+| CloudWatch Logs  | Captures execution logs and troubleshooting data                   |
+| Default Tags     | Enforces ownership, environment, project, and cost center metadata |
 
 ---
 
@@ -152,22 +153,22 @@ AWSFinOpsControlTower/
 
 The current Lambda-based FinOps engine analyzes:
 
-- EC2 instances
-- EBS volumes
-- Elastic IPs
-- CloudWatch CPU utilization metrics
+* EC2 instances
+* EBS volumes
+* Elastic IPs
+* CloudWatch CPU utilization metrics
 
 It generates findings for:
 
-| Resource | Detection Rule | Severity | Recommendation |
-|---|---|---|---|
-| EC2 | Running with CPU below 5% | High | Review, stop, terminate, or rightsize after validation |
-| EC2 | Running with CPU between 5% and 20% | Medium | Evaluate rightsizing |
-| EC2 | Stopped instance | Medium | Review attached EBS and ownership |
-| EBS | Available or unattached volume | High | Snapshot if required, then delete after approval |
-| EBS | gp2 volume | Medium | Evaluate migration to gp3 |
-| EBS | Unencrypted volume | Medium | Review encryption requirements |
-| EIP | No association | High | Release after ownership validation |
+| Resource | Detection Rule                      | Severity | Recommendation                                         |
+| -------- | ----------------------------------- | -------- | ------------------------------------------------------ |
+| EC2      | Running with CPU below 5%           | High     | Review, stop, terminate, or rightsize after validation |
+| EC2      | Running with CPU between 5% and 20% | Medium   | Evaluate rightsizing                                   |
+| EC2      | Stopped instance                    | Medium   | Review attached EBS and ownership                      |
+| EBS      | Available or unattached volume      | High     | Snapshot if required, then delete after approval       |
+| EBS      | gp2 volume                          | Medium   | Evaluate migration to gp3                              |
+| EBS      | Unencrypted volume                  | Medium   | Review encryption requirements                         |
+| EIP      | No association                      | High     | Release after ownership validation                     |
 
 ---
 
@@ -177,26 +178,26 @@ Phase 4 extends the system from technical recommendations into financial decisio
 
 The engine estimates monthly and annual savings for:
 
-- Idle EC2 instances
-- Underutilized EC2 instances
-- Unattached EBS volumes
-- gp2 to gp3 migration candidates
-- Unused Elastic IPs
+* Idle EC2 instances
+* Underutilized EC2 instances
+* Unattached EBS volumes
+* gp2 to gp3 migration candidates
+* Unused Elastic IPs
 
 Pricing is intentionally configurable through Terraform variables and Lambda environment variables.
 
 Current assumptions include:
 
-| Variable | Purpose |
-|---|---|
-| monthly_hours | Standard monthly hour baseline |
-| default_ec2_hourly_rate | Placeholder EC2 hourly rate until Price List API integration |
-| rightsize_savings_factor | Estimated savings percentage for rightsizing |
-| ebs_gp2_gb_month_rate | Estimated gp2 GB-month rate |
-| ebs_gp3_gb_month_rate | Estimated gp3 GB-month rate |
-| public_ipv4_hourly_rate | Estimated public IPv4 hourly rate |
+| Variable                 | Purpose                                                      |
+| ------------------------ | ------------------------------------------------------------ |
+| monthly_hours            | Standard monthly hour baseline                               |
+| default_ec2_hourly_rate  | Placeholder EC2 hourly rate until Price List API integration |
+| rightsize_savings_factor | Estimated savings percentage for rightsizing                 |
+| ebs_gp2_gb_month_rate    | Estimated gp2 GB-month rate                                  |
+| ebs_gp3_gb_month_rate    | Estimated gp3 GB-month rate                                  |
+| public_ipv4_hourly_rate  | Estimated public IPv4 hourly rate                            |
 
-This avoids overclaiming savings while still creating a clear financial prioritization model.
+This avoids overstating savings while still creating a clear financial prioritization model.
 
 ---
 
@@ -277,6 +278,42 @@ aws s3 ls s3://$bucket/reports/finops-cost-impact/ `
   --region us-east-1
 ```
 
+Download generated reports:
+
+```powershell
+$bucket = terraform output -raw finops_reports_bucket_name
+
+New-Item -ItemType Directory -Force -Path phase-4-reports
+
+aws s3 sync s3://$bucket/reports/finops-cost-impact/ `
+  .\phase-4-reports `
+  --exclude "*:*" `
+  --profile finops-lab `
+  --region us-east-1
+```
+
+Inspect latest report:
+
+```powershell
+$latestReport = Get-ChildItem .\phase-4-reports -Recurse -Filter *.json |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+
+$report = Get-Content $latestReport.FullName | ConvertFrom-Json
+
+$report.summary
+
+$report.findings |
+  Select-Object `
+    resource_type, `
+    resource_id, `
+    severity, `
+    category, `
+    @{Name="monthly_savings_usd";Expression={$_.cost_impact.estimated_monthly_savings}}, `
+    recommendation |
+  Format-Table -AutoSize
+```
+
 ---
 
 ## 12. Governance and Safety Model
@@ -285,12 +322,12 @@ This system is deliberately non-destructive.
 
 It does not:
 
-- Stop EC2 instances
-- Terminate EC2 instances
-- Delete EBS volumes
-- Release Elastic IPs
-- Modify infrastructure automatically
-- Apply recommendations without approval
+* Stop EC2 instances
+* Terminate EC2 instances
+* Delete EBS volumes
+* Release Elastic IPs
+* Modify infrastructure automatically
+* Apply recommendations without approval
 
 Every optimization recommendation requires:
 
@@ -309,15 +346,15 @@ The system prioritizes governance, auditability, and controlled execution over a
 
 ## 13. Project Phases
 
-| Phase | Capability | Status |
-|---|---|---|
-| Phase 1 | Terraform Foundation: S3, SNS, IAM, CloudWatch Logs | Implemented |
-| Phase 2 | Lambda Execution Layer with EventBridge schedule | Implemented |
+| Phase   | Capability                                               | Status      |
+| ------- | -------------------------------------------------------- | ----------- |
+| Phase 1 | Terraform Foundation: S3, SNS, IAM, CloudWatch Logs      | Implemented |
+| Phase 2 | Lambda Execution Layer with EventBridge schedule         | Implemented |
 | Phase 3 | Real FinOps discovery for EC2, EBS, EIP, and CPU metrics | Implemented |
-| Phase 4 | Cost impact estimation for monthly and annual savings | Implemented |
-| Phase 5 | CSV and Markdown executive reporting | Planned |
-| Phase 6 | AWS Price List API and Cost Explorer enrichment | Planned |
-| Phase 7 | Multi-account / AWS Organizations support | Planned |
+| Phase 4 | Cost impact estimation for monthly and annual savings    | Implemented |
+| Phase 5 | CSV and Markdown executive reporting                     | Planned     |
+| Phase 6 | AWS Price List API and Cost Explorer enrichment          | Planned     |
+| Phase 7 | Multi-account / AWS Organizations support                | Planned     |
 
 ---
 
@@ -325,31 +362,32 @@ The system prioritizes governance, auditability, and controlled execution over a
 
 This project deliberately avoids:
 
-- Automatic deletion of resources
-- Blind rightsizing
-- Unreviewed cost actions
-- Black-box ML recommendations
-- Overstated savings claims
+* Automatic deletion of resources
+* Blind rightsizing
+* Unreviewed cost actions
+* Black-box ML recommendations
+* Overstated savings claims
 
 It prioritizes:
 
-- Deterministic logic
-- Explainable findings
-- Audit-ready reports
-- Human approval
-- Financial governance
-- Repeatable execution through Terraform
+* Deterministic logic
+* Explainable findings
+* Audit-ready reports
+* Human approval
+* Financial governance
+* Repeatable execution through Terraform
 
 ---
 
 ## 15. Current Limitations
 
-- EC2 pricing uses configurable assumptions instead of live AWS Price List API data
-- CPU-based rightsizing is a proxy, not full workload profiling
-- No AWS Compute Optimizer integration yet
-- No multi-account aggregation yet
-- NAT Gateway and S3 lifecycle cost analysis are not yet included
-- Savings estimates are directional and require validation before action
+* EC2 pricing uses configurable assumptions instead of live AWS Price List API data
+* CPU-based rightsizing is a proxy, not full workload profiling
+* No AWS Compute Optimizer integration yet
+* No multi-account aggregation yet
+* NAT Gateway and S3 lifecycle cost analysis are not yet included
+* Savings estimates are directional and require validation before action
+* Existing S3 report keys with colon characters in timestamps may fail to download on Windows unless renamed or excluded
 
 ---
 
@@ -359,17 +397,17 @@ This project demonstrates how FinOps can be operationalized using cloud-native a
 
 It provides:
 
-- Reduced cloud waste visibility
-- Cost accountability by resource
-- Financial impact estimation
-- Scheduled optimization reporting
-- Audit-ready evidence
-- Clear approval boundaries
-- Better communication between engineering, finance, and leadership
+* Reduced cloud waste visibility
+* Cost accountability by resource
+* Financial impact estimation
+* Scheduled optimization reporting
+* Audit-ready evidence
+* Clear approval boundaries
+* Better communication between engineering, finance, and leadership
 
 ---
 
-## 17. Interview Positioning
+## 17. Positioning
 
 I designed and implemented an AWS FinOps Control Tower using Terraform, Lambda, EventBridge, S3, SNS, IAM, CloudWatch, and Python.
 
@@ -386,3 +424,6 @@ The design focuses on governance, auditability, and controlled execution rather 
 This is not a simple AWS cost script.
 
 This is a Terraform-provisioned FinOps control plane with a Python-based decision engine that converts AWS infrastructure signals into financial visibility, risk classification, and controlled optimization recommendations.
+
+```
+```
