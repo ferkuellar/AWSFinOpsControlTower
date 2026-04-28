@@ -1,13 +1,111 @@
+# =========================
+# Python
+# =========================
 .venv/
+venv/
+env/
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
 
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials
+credentials.*
+config
+config.*
+
+# =========================
+# AWS CLI / Local Credentials
+# =========================
+.aws/
+aws_credentials/
+aws_config/
+
+# =========================
+# Terraform
+# =========================
+**/.terraform/*
+.terraform/
+.terraform.lock.hcl
+
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+*.tfvars
+*.tfvars.json
+
+tfplan
+tfplan.*
+*.plan
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# =========================
+# Lambda build artifacts
+# =========================
+terraform/lambda/*.zip
+terraform/lambda/*.log
+terraform/lambda/__pycache__/
+terraform/lambda/*.pyc
+
+# =========================
+# Generated Reports
+# =========================
 reports/*.json
 reports/*.csv
 reports/*.md
-logs/
+reports/*.pdf
+reports/**/*.json
+reports/**/*.csv
+reports/**/*.md
+reports/**/*.pdf
 
+downloaded-reports/
+phase-*-reports/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# Evidence with sensitive account metadata
+# Optional: comment this if you intentionally want to publish sanitized evidence
+# =========================
+docs/evidence/**/*.json
+docs/evidence/**/*.txt
+
+# =========================
+# OS / Editors
+# =========================
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
+
+# =========================
+# Node / Misc if added later
+# =========================
+node_modules/
+dist/
+build/
+coverage/
